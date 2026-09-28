@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DuText</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="mark">DuText</span>
+        <span class="promise">你来画，我来排版</span>
+      </div>
+      <div class="tools" role="toolbar">
+        <button type="button" id="tool-ellipse" class="tool is-on layout-only" data-tool="ellipse">椭圆</button>
+        <button type="button" id="tool-pen" class="tool" data-tool="pen">画笔</button>
+        <button type="button" id="tool-rect" class="tool compose-only" data-tool="rect">矩形</button>
+        <button type="button" id="tool-arrow" class="tool compose-only" data-tool="arrow">箭头</button>
+        <button type="button" id="tool-black" class="tool compose-only" data-tool="black">黑笔</button>
+        <button type="button" id="btn-undo" class="tool ghost" title="撤销上一笔">← 撤销</button>
+        <button type="button" id="btn-redo" class="tool ghost" title="重做">重做 →</button>
+        <button type="button" id="btn-clear" class="tool ghost">清空笔迹</button>
+      </div>
+      <div class="actions">
+        <button type="button" id="btn-download" class="tool ghost">下载 PDF</button>
+        <label class="tool ghost file">
+          导入 .tex
+          <input id="file-input" type="file" accept=".tex" hidden />
+        </label>
+        <button type="button" id="btn-sample" class="tool ghost">示例文档</button>
+        <button type="button" id="btn-finish" class="tool compose-only">完成</button>
+        <button type="button" id="btn-generate" class="tool primary">排一版</button>
+      </div>
+    </header>
+
+    <div class="keybar">
+      <span>DeepSeek API Key</span>
+      <input id="api-key" type="password" placeholder="只需要粘贴密钥，模型已接好" autocomplete="off" />
+      <button type="button" id="btn-save-key" class="tool">保存</button>
+      <span id="key-state" class="key-state">未配置</span>
+    </div>
+
+    <main class="workspace">
+      <aside class="sidebar" id="sidebar">
+        <button type="button" id="btn-sidebar" class="sidebar-toggle" title="隐藏或显示侧栏">‹</button>
+        <div class="sidebar-body">
+          <p class="sidebar-kicker">功能</p>
+          <button type="button" id="btn-compose" class="side-btn">画版</button>
+          <p class="sidebar-hint">单页自由排版：左边原文，右边空白画布。画完点「完成」，再「排一版」。</p>
+          <button type="button" id="btn-download-side" class="side-btn ghost">下载当前稿</button>
+        </div>
+      </aside>
+
+      <div class="workspace-core" id="core">
+        <section class="pane" id="pane-left">
+          <div class="pane-head">
+            <h1 id="left-title">当前稿</h1>
+            <p id="left-hint">右键或 Ctrl+滚轮结束一条指令；普通滚轮上下滑动。一次最多三条。</p>
+            <div class="ink-row">
+              <span class="ink-dot" id="ink-dot"></span>
+              <span id="ink-label">指令 1／3 · 红</span>
+            </div>
+            <div class="pager">
+              <button type="button" id="prev-page" class="tiny">上一页</button>
+              <span id="page-label">1 / 1</span>
+              <button type="button" id="next-page" class="tiny">下一页</button>
+            </div>
+          </div>
+          <div class="scroll" id="scroll-left">
+            <div class="sheet" id="sheet-left">
+              <canvas id="pdf-left"></canvas>
+              <canvas id="overlay-left"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <aside class="gutter" aria-label="接受或打回">
+          <button type="button" id="btn-accept" class="arrow" title="收下右边这一版">
+            <span class="dir">←</span>
+            <span>收下</span>
+          </button>
+          <button type="button" id="btn-generate-side" class="gutter-go">排一版</button>
+          <button type="button" id="btn-finish-side" class="gutter-go compose-only">完成</button>
+          <button type="button" id="btn-reject" class="arrow" title="丢掉这次提案">
+            <span class="dir">→</span>
+            <span>打回</span>
+          </button>
+        </aside>
+
+        <section class="pane" id="pane-right">
+          <div class="pane-head">
+            <h1 id="right-title">提案</h1>
+            <p id="right-hint">编译后的结果。不满意就打回。</p>
+          </div>
+          <div class="scroll" id="scroll-right">
+            <div class="sheet" id="sheet-right">
+              <canvas id="pdf-right"></canvas>
+              <canvas id="overlay-right"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <canvas id="overlay-bridge"></canvas>
+      </div>
+
+      <aside class="prompt-dock" id="prompt-dock" aria-label="指令备注">
+        <div class="prompt-dock-inner">
+          <h2>指令备注</h2>
+          <p class="sidebar-hint">每条对应一种笔迹。这里写的会和系统说明一起发给 AI。</p>
+          <label class="prompt-card" data-group="0">
+            <span>指令 1 · 红</span>
+            <textarea data-group="0" placeholder="例如：宋体、行距 1.5"></textarea>
+          </label>
+          <label class="prompt-card" data-group="1">
+            <span>指令 2 · 黄</span>
+            <textarea data-group="1" placeholder="这条指令的额外约束"></textarea>
+          </label>
+          <label class="prompt-card" data-group="2">
+            <span>指令 3 · 蓝</span>
+            <textarea data-group="2" placeholder="这条指令的额外约束"></textarea>
+          </label>
+          <label class="prompt-card" data-group="3">
+            <span>指令 4 · 黑笔版面</span>
+            <textarea data-group="3" placeholder="例如：底部一条黑实线"></textarea>
+          </label>
+        </div>
+      </aside>
+    </main>
+
+    <button type="button" id="ai-fab" class="ai-fab" title="打开指令备注">AI</button>
+
+    <footer class="status" id="status">先保存 API Key。红黄蓝各算一条指令；右键或 Ctrl+滚轮确认后换色。</footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+.env
+tools/*.zip
+tools/tectonic.exe
+*.log
+.DS_Store
