@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#171d24" />
     <title>DuText</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/bricolage-grotesque@latest/latin-600.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/bricolage-grotesque@latest/latin-700.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/ibm-plex-mono@latest/latin-400.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/ibm-plex-mono@latest/latin-500.css" />
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
@@ -49,6 +55,14 @@
           <button type="button" id="btn-compose" class="side-btn">画版</button>
           <p class="sidebar-hint">单页自由排版：左边原文，右边空白画布。画完点「完成」，再「排一版」。</p>
           <button type="button" id="btn-download-side" class="side-btn ghost">下载当前稿</button>
+          <details class="legend">
+            <summary>支持的手势</summary>
+            <ul>
+              <li><i class="sw" data-g="0"></i>圈选文字加感叹号 → 加粗</li>
+              <li><i class="sw" data-g="0"></i>矩形圈文字 → 箭头 → 右侧目标框</li>
+              <li><i class="sw" data-g="3"></i>黑笔画版面：线条、框，画哪算哪</li>
+            </ul>
+          </details>
         </div>
       </aside>
 

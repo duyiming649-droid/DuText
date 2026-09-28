@@ -332,7 +332,7 @@ async function renderPane(side) {
     const ctx = cssSize(canvas, slot.viewport.width, slot.viewport.height);
     sheet.style.width = `${slot.viewport.width}px`;
     sheet.style.height = `${slot.viewport.height}px`;
-    ctx.fillStyle = "#fffcf7";
+    ctx.fillStyle = "#fbfaf7";
     ctx.fillRect(0, 0, slot.viewport.width, slot.viewport.height);
     cssSize(overlay, slot.viewport.width, slot.viewport.height);
     return;
@@ -635,7 +635,7 @@ function snapshotSheet(side) {
   out.width = pdf.width;
   out.height = pdf.height;
   const ctx = out.getContext("2d");
-  ctx.fillStyle = "#fffcf7";
+  ctx.fillStyle = "#fbfaf7";
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(pdf, 0, 0);
   ctx.drawImage(overlay, 0, 0);
@@ -663,7 +663,7 @@ function paintBlankWithStrokes(side) {
   const ctx = out.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#fffcf7";
+  ctx.fillStyle = "#fbfaf7";
   ctx.fillRect(0, 0, template.clientWidth, template.clientHeight);
   if (!slot.viewport || !slot.page) return out;
   for (const stroke of currentStrokes()) {
@@ -777,6 +777,10 @@ function onCommitWheel(event) {
 }
 
 function enterCompose() {
+  if (state.pageCount > 1) {
+    setStatus(`画版目前只支持单页文档；这份文档有 ${state.pageCount} 页，收下提案会吞掉其他页。`, "is-bad");
+    return;
+  }
   state.ui = "compose";
   state.fromCompose = true;
   state.promptsOpen = false;
