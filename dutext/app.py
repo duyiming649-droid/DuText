@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
+import pymupdf
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -12,9 +14,10 @@ from dutext.compile import CompileError, compile_side, engine_name
 from dutext.config import STATIC_DIR
 from dutext.llm import LLMError, REPAIR_TRIES, edit_tex, edit_tex_compose, perceive, perceive_compose, repair_tex
 from dutext.models import GenerateRequest
-from dutext.pipeline import GestureError, apply_compose, apply_intents
+from dutext.pipeline import GestureError, apply_compose, apply_intents, recognize
 from dutext.secrets import get_api_key, key_is_set, set_api_key
 from dutext.store import (
+    backup_side,
     copy_project,
     import_tex_file,
     load_sample,
@@ -23,7 +26,13 @@ from dutext.store import (
     write_tex,
 )
 
-app = FastAPI(title="DuText", version="0.1.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    _ensure_ready()
+    yield
+
+
+app = FastAPI(title="DuText", version="0.1.0", lifespan=lifespan)
 
 
 def _ensure_ready() -> None:
@@ -35,11 +44,6 @@ def _ensure_ready() -> None:
     if not pdf_path("left").exists():
         compile_side("left")
         copy_project("left", "right")
-
-
-@app.on_event("startup")
-def startup() -> None:
-    _ensure_ready()
 
 
 @app.get("/api/status")
@@ -140,24 +144,32 @@ def generate(request: GenerateRequest) -> dict:
     try:
         original = read_tex("left")
         if request.mode == "compose":
+            _reject_multi_page_compose()
             intents = perceive_compose(request, str(pdf_path("left")))
             try:
                 new_tex = edit_tex_compose(original, intents, request)
             except LLMError:
                 new_tex = apply_compose(original, intents, request)
         else:
-            intents = perceive(request.page, request.image_jpeg_base64, str(pdf_path("left")))
+            intents = []
+            new_tex = None
+            # Deterministic first: a clean circle + bang needs no model at all.
             try:
-                new_tex = edit_tex(original, intents)
-            except LLMError:
+                intents = [recognize(request, str(pdf_path("left")))]
                 new_tex = apply_intents(original, intents)
-            for intent in intents:
-                if intent.kind == "emphasize" and intent.text:
-                    try:
-                        new_tex, used = apply_bold(new_tex, intent.text)
-                        intent.text = used
-                    except ApplyError:
-                        pass
+            except GestureError:
+                intents = perceive(request.page, request.image_jpeg_base64, str(pdf_path("left")))
+                try:
+                    new_tex = edit_tex(original, intents)
+                except LLMError:
+                    new_tex = apply_intents(original, intents)
+                for intent in intents:
+                    if intent.kind == "emphasize" and intent.text:
+                        try:
+                            new_tex, used = apply_bold(new_tex, intent.text)
+                            intent.text = used
+                        except ApplyError:
+                            pass
         write_tex("right", new_tex)
         _compile_right_with_repair()
     except (GestureError, LLMError) as exc:
@@ -169,6 +181,14 @@ def generate(request: GenerateRequest) -> dict:
         "intents": [item.model_dump() for item in intents],
         "status": status(),
     }
+
+
+def _reject_multi_page_compose() -> None:
+    """Compose rewrites one page into a whole document; a multi-page source would lose pages on accept."""
+    with pymupdf.open(str(pdf_path("left"))) as doc:
+        pages = doc.page_count
+    if pages > 1:
+        raise GestureError(f"画版目前只支持单页文档；这份文档有 {pages} 页。多页支持在路上了。")
 
 
 def _compile_right_with_repair() -> None:
@@ -189,6 +209,7 @@ def _compile_right_with_repair() -> None:
 @app.post("/api/accept")
 def accept() -> dict:
     """Right proposal becomes the new left (current) document."""
+    backup_side("left")
     copy_project("right", "left")
     return status()
 

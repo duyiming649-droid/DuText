@@ -4,7 +4,7 @@ import httpx
 
 from dutext.jsonutil import parse_json_object
 from dutext.models import GenerateRequest, Intent, RectBox
-from dutext.pdf_text import join_words, page_words
+from dutext.pdf_text import numbered_lines, page_words
 from dutext.pipeline import intents_from_compose_strokes
 from dutext.secrets import get_api_key
 
@@ -62,14 +62,16 @@ def _chat(model: str, messages: list, *, json_mode: bool = True) -> str:
 
 def perceive(page: int, image_jpeg_b64: str, pdf_file: str) -> list[Intent]:
     """Vision Exp reads the annotated page. One entry per ink color/instruction."""
-    page_text = join_words(page_words(pdf_file, page))
+    page_text = numbered_lines(pdf_file, page)
     prompt = (
         "You see a screenshot of one PDF page. Colored ink is the user's overlay. "
         "Red, yellow, and blue marks are SEPARATE instructions, in that order. "
         "There are at most three instructions.\n"
         "Each instruction currently means: an ellipse/circle around body text "
         "plus an exclamation mark beside that circle → make that text bold.\n"
-        "Use the page text layer below to copy wording exactly.\n"
+        "The page text layer below is numbered per line, like [L07]. Copy each "
+        "\"text\" value CHARACTER-FOR-CHARACTER from those numbered lines. Never "
+        "paraphrase, never fix grammar, never add or drop words.\n"
         "Return JSON only:\n"
         "{\n"
         '  "summary": "one short Chinese sentence covering all instructions",\n'
@@ -78,9 +80,12 @@ def perceive(page: int, image_jpeg_b64: str, pdf_file: str) -> list[Intent]:
         '"text": "exact words to bold", "summary": "short Chinese"}\n'
         "  ]\n"
         "}\n"
+        'Example: {"summary": "将红圈句子加粗", "instructions": [{"color": "red", '
+        '"kind": "emphasize", "text": "spatial marks are a better control language '
+        'than prompts", "summary": "红圈句子加粗"}]}\n'
         "Omit a color if it was not used. If nothing is recognizable, instructions must be empty.\n"
         f"Page number: {page}\n"
-        f"Page text layer:\n{page_text}"
+        f"Numbered page text layer:\n{page_text}"
     )
     content = _chat(
         VISION_MODEL,
@@ -136,7 +141,8 @@ def edit_tex(tex: str, intents: list[Intent] | Intent) -> str:
         intents = [intents]
     spans = "\n".join(f"{i + 1}. {item.text}" for i, item in enumerate(intents))
     prompt = (
-        "You edit LaTeX. Do not change the wording of the document. "
+        "You edit LaTeX. Do not change the wording of the document. Do not reflow, "
+        "rewrap or reformat any line you are not asked to change. "
         "Task: wrap EACH listed span in \\textbf{...} at its first remaining "
         "source occurrence. Skip a span if it is already bold.\n"
         'Return JSON: {"tex": "<full file>", "note": "short Chinese"}.\n'
@@ -209,7 +215,7 @@ def _merge_compose_intents(base: list[Intent], vision: list[Intent]) -> list[Int
 
 
 def _vision_compose(request: GenerateRequest, pdf_file: str) -> list[Intent]:
-    page_text = join_words(page_words(pdf_file, request.page))
+    page_text = numbered_lines(pdf_file, request.page)
     parsed = intents_from_compose_strokes(request, pdf_file)
     geometry = []
     for item in parsed:
@@ -234,7 +240,8 @@ def _vision_compose(request: GenerateRequest, pdf_file: str) -> list[Intent]:
         "straighten wobbly lines, even out spacing. Do not invent extra decorations.\n"
         "A typical color instruction: a rectangle around source text on the LEFT, an arrow "
         "to the RIGHT, and a same-color destination rectangle. Put that text into the dest "
-        "box. Fit by font size and leading. If the original size already fits, keep it.\n"
+        "box. Fit by font size and leading. If the original size already fits, keep it. "
+        "Copy \"text\" CHARACTER-FOR-CHARACTER from the numbered text layer below — never paraphrase.\n"
         "User notes below are extra constraints for THAT instruction only (font, leading, ...).\n"
         "Return JSON only:\n"
         "{\n"
@@ -250,7 +257,7 @@ def _vision_compose(request: GenerateRequest, pdf_file: str) -> list[Intent]:
         f"Page size: {request.page_width} x {request.page_height} pt\n"
         f"User notes:\n{_notes_block(request)}\n"
         f"Geometry from overlay:\n{geometry}\n"
-        f"Page text layer:\n{page_text}"
+        f"Numbered page text layer:\n{page_text}"
     )
     content = _chat(
         VISION_MODEL,
@@ -363,27 +370,36 @@ def edit_tex_compose(tex: str, intents: list[Intent], request: GenerateRequest) 
         "You edit LaTeX for DuText compose mode. This is a SINGLE-PAGE free layout. "
         "Do not rewrite the wording of passages; move and typeset them.\n"
         "Screenshot (left original, right blank canvas) plus the spec below is the user intent.\n"
-        "PLACE: put that exact text into dest_rect on the output page. Fit inside the box by "
-        "adjusting font size and baselineskip/leading. If the original size already fits the "
+        "RULES (all mandatory):\n"
+        "R1. PLACE: put that exact text into dest_rect on the output page. Fit inside the box "
+        "by adjusting font size and baselineskip/leading. If the original size already fits the "
         "box, KEEP the original size. Prefer minipage/parbox/tikz nodes. Coordinates are "
         "PDF points, origin top-left; convert to TeX (origin bottom-left) as needed. "
         "Page size in pt is given below.\n"
-        "TEMPLATE: black pen is the layout template (rules, frames). Honour location and shape; "
-        "only clean up. Optional — skip if none.\n"
-        "If there are NO place boxes, keep the original document body and only add the "
+        "R2. TEMPLATE: black pen is the layout template (rules, frames). Honour each mark's "
+        "location and shape; only clean it up — straighten near-straight strokes, even out "
+        "spacing, never merge all black ink into one decoration. Optional — skip if none.\n"
+        "R3. WORDING: every passage keeps its exact source wording. You may change only "
+        "layout, fonts and spacing.\n"
+        "R4. Output is exactly ONE page. Other pages of a multi-page source are out of scope.\n"
+        "R5. If there are NO place boxes, keep the original document body and only add the "
         "cleaned template graphics (e.g. a bottom rule).\n"
-        "If there ARE place boxes, produce a one-page result for this visible page only. "
-        "Other pages of a multi-page source are out of scope and must not be silently rewritten "
-        "beyond what compiling a one-page file implies.\n"
+        "R6. Packages you may use: geometry, tikz, eso-pic, graphicx, setspace. Avoid exotic fonts.\n"
         "Each user note applies only to its instruction, together with this system brief.\n"
-        "Packages you may use: geometry, tikz, eso-pic, graphicx, setspace. Avoid exotic fonts.\n"
-        'Return JSON: {"tex": "<full file>", "note": "short Chinese"}.\n'
+        "Before returning, verify R1-R6 yourself and report honestly in \"checks\".\n"
+        'Return JSON: {"tex": "<full file>", "note": "short Chinese", '
+        '"checks": {"wording_unchanged": true, "one_page": true, "in_dest_boxes": true}}.\n'
         f"Page size: {request.page_width} x {request.page_height} pt\n"
         f"User notes:\n{_notes_block(request)}\n"
         f"Spec:\n{chr(10).join(spec_lines) or '(empty)'}\n\n"
         f"Current source:\n{tex}"
     )
     data = parse_json_object(_chat(PRO_MODEL, [{"role": "user", "content": prompt}]))
+    checks = data.get("checks")
+    if isinstance(checks, dict):
+        failed = sorted(name for name, ok in checks.items() if ok is False)
+        if failed:
+            raise LLMError("Pro 自检未通过（" + ", ".join(failed) + "），改用确定性排版。")
     new_tex = str(data.get("tex") or "").strip()
     if not new_tex:
         raise LLMError("Pro 没有返回 TeX。")

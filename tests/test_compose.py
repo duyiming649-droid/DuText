@@ -74,6 +74,18 @@ def test_place_intent_from_rects(monkeypatch) -> None:
     assert any(item.kind == "template" for item in intents)
 
 
+def test_numbered_lines_groups_by_line(monkeypatch) -> None:
+    from dutext import pdf_text
+
+    words = [
+        WordBox(0, 0, 10, 10, "The", 0, 0, 0),
+        WordBox(12, 0, 30, 10, "claim", 0, 0, 1),
+        WordBox(0, 20, 10, 30, "Next", 1, 0, 0),
+    ]
+    monkeypatch.setattr(pdf_text, "page_words", lambda *args, **kwargs: words)
+    assert pdf_text.numbered_lines("dummy.pdf", 1) == "[L01] The claim\n[L02] Next"
+
+
 def test_apply_compose_black_only_keeps_body() -> None:
     tex = "\\documentclass{article}\\begin{document}Hi there\\end{document}"
     request = GenerateRequest(

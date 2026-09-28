@@ -67,6 +67,22 @@ def join_words(words: list[WordBox]) -> str:
     return " ".join(w.text for w in words)
 
 
+def numbered_lines(pdf_file: str, page_number: int) -> str:
+    """Page text as [Lnn]-prefixed lines in reading order.
+
+    Prompts use this so the model can quote a line verbatim (or cite its
+    number) instead of paraphrasing; the tags also make omissions visible.
+    """
+    lines: dict[tuple[int, int], list[WordBox]] = {}
+    for word in page_words(pdf_file, page_number):
+        lines.setdefault((word.block, word.line), []).append(word)
+    out: list[str] = []
+    for index, key in enumerate(sorted(lines), start=1):
+        row = sorted(lines[key], key=lambda w: w.word)
+        out.append(f"[L{index:02d}] " + " ".join(w.text for w in row))
+    return "\n".join(out)
+
+
 def words_inside_rect(words: list[WordBox], rect: RectBox) -> list[WordBox]:
     box = rect.normalized()
     x0, y0 = box.x, box.y

@@ -14,6 +14,17 @@ class CompileError(RuntimeError):
         self.log = log
 
 
+# Stale intermediates from a previous document (e.g. tikz \pgfsyspdfmark in an
+# old .aux) poison the next compile of a different document. Both engines
+# regenerate these within their own run, so purging up front is safe.
+_AUX_SUFFIXES = (".aux", ".toc", ".out", ".lof", ".lot")
+
+
+def _purge_stale_intermediates(cwd: Path) -> None:
+    for suffix in _AUX_SUFFIXES:
+        (cwd / f"main{suffix}").unlink(missing_ok=True)
+
+
 def _tectonic_exe() -> Path | None:
     local = TOOLS_DIR / "tectonic.exe"
     if local.exists():
@@ -41,6 +52,7 @@ def compile_side(side: str) -> Path:
     cwd = side_dir(side)
     log_path = cwd / "compile.log"
     engine = engine_name()
+    _purge_stale_intermediates(cwd)
 
     if engine == "tectonic":
         cmd = [_tectonic_exe(), "--keep-logs", "--keep-intermediates", tex.name]

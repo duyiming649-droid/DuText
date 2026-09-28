@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import shutil
+import time
 from pathlib import Path
 
-from dutext.config import SAMPLES_DIR, WORKSPACE
+from dutext.config import DATA_DIR, SAMPLES_DIR, WORKSPACE
 
 TEX_NAME = "main.tex"
 PDF_NAME = "main.pdf"
+HISTORY_DIR = DATA_DIR / "history"
+HISTORY_KEEP = 5
 
 
 def left_dir() -> Path:
@@ -50,6 +53,21 @@ def copy_project(src_side: str, dst_side: str) -> None:
     if dst.exists():
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
+
+
+def backup_side(side: str) -> Path | None:
+    """Snapshot a side into data/history before it gets overwritten. Keeps the newest few."""
+    if not tex_path(side).exists():
+        return None
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    dst = HISTORY_DIR / f"{side}-{time.strftime('%Y%m%d-%H%M%S')}"
+    if dst.exists():
+        return None
+    shutil.copytree(side_dir(side), dst)
+    backups = sorted(HISTORY_DIR.glob(f"{side}-*"))
+    for old in backups[:-HISTORY_KEEP]:
+        shutil.rmtree(old, ignore_errors=True)
+    return dst
 
 
 def load_tex_into_both(tex: str) -> None:
