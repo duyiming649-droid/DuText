@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<title>DuText · 功能与交互提案</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #1d1d1f;
+    --panel: rgba(255, 255, 255, 0.055);
+    --line: rgba(255, 255, 255, 0.12);
+    --text: #f5f5f7;
+    --muted: #98989d;
+    --blue: #0a84ff;
+    --ok: #30d158;
+    --warn: #ffd60a;
+    --bad: #ff453a;
+    --paper: #fcfcfa;
+    --ink-r: #dc2626;
+    --ink-y: #ca8a04;
+    --ink-b: #2563eb;
+    --ink-k: #111111;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+      "PingFang SC", "Microsoft YaHei UI", "Noto Sans SC", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.7 var(--font); }
+  body { padding: 0 0 120px; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 22px; }
+
+  header.hero { padding: 64px 0 28px; border-bottom: 1px solid var(--line); }
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.12em; }
+  h1 { margin: 10px 0 6px; font-size: 34px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+  .hero p.sub { margin: 0; color: var(--muted); font-size: 16px; max-width: 62ch; }
+  .hero .meta { margin-top: 14px; color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; margin: 64px 0 6px; }
+  h2 .no { color: var(--blue); font-family: var(--mono); font-size: 15px; font-weight: 600; margin-right: 10px; vertical-align: 3px; }
+  h3 { font-size: 17px; font-weight: 700; margin: 30px 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+
+  .callout {
+    margin: 18px 0; padding: 14px 18px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line); font-size: 14px;
+  }
+  .callout b { color: var(--text); }
+  .callout.gold { border-left: 3px solid var(--warn); }
+  .callout.blue { border-left: 3px solid var(--blue); }
+  .callout.green { border-left: 3px solid var(--ok); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; font-size: 13.5px; }
+  .card h4 { margin: 0 0 6px; font-size: 14px; }
+  .card p { margin: 0; color: var(--muted); line-height: 1.6; }
+
+  /* 指令条目 */
+  .feat { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start;
+    padding: 24px 0; border-top: 1px solid var(--line); margin-top: 24px; }
+  @media (max-width: 800px) { .feat { grid-template-columns: 1fr; } }
+  .feat .demo svg { width: 100%; height: auto; display: block; background: var(--paper); border-radius: 12px;
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45); }
+  .feat h3 { margin: 2px 0 10px; font-size: 19px; }
+  .tag { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 99px;
+    background: rgba(10,132,255,.14); color: #7cc0ff; font-size: 11px; font-weight: 600; vertical-align: 2px; }
+  .tag.p0 { background: rgba(48,209,88,.13); color: #6fe09a; }
+  .tag.p1 { background: rgba(255,214,10,.12); color: #ffe063; }
+  .tag.p2 { background: rgba(255,255,255,.09); color: var(--muted); }
+  .feat dl { margin: 0; font-size: 13.5px; }
+  .feat dt { color: var(--blue); font-weight: 650; margin-top: 10px; }
+  .feat dt.u { color: var(--ok); }
+  .feat dd { margin: 2px 0 0; color: var(--muted); line-height: 1.65; }
+  .feat dd b, .callout dd b { color: var(--text); }
+  code, .mono { font-family: var(--mono); font-size: 12.5px; background: rgba(255,255,255,.07);
+    padding: 1px 6px; border-radius: 5px; }
+  pre { background: #141416; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+    overflow: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: #d9e2ec; }
+  pre .c { color: #6b7683; } pre .k { color: #7cc0ff; } pre .s { color: #ffd60a; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 14px 0; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  td b { color: var(--text); }
+  td { color: var(--muted); }
+
+  ol.refs { padding-left: 22px; color: var(--muted); font-size: 13.5px; }
+  ol.refs li { margin-bottom: 8px; }
+
+  /* ===== 动画基建：基态 = 最终画面；keyframes 从起始演到基态；9s 循环，淡出遮住跳变 ===== */
+  .sc text { font-family: var(--font); }
+  .sc-t { fill: #3a3a3c; font-size: 10.5px; }
+  .sc-dim { fill: #98989d; font-size: 10.5px; }
+  .sc-w { fill: #ffffff; font-size: 10px; font-weight: 600; }
+  .sc-page { fill: #ffffff; stroke: #d6d6d8; stroke-width: 1; }
+  .sc-gray { fill: #e9e9eb; }
+  .ik { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ik-r { stroke: var(--ink-r); } .ik-y { stroke: var(--ink-y); }
+  .ik-b { stroke: var(--ink-b); } .ik-k { stroke: var(--ink-k); }
+  .drawn { stroke-dasharray: 1; }
+  .chip { fill: #1c1c1e; stroke: rgba(255,255,255,.25); }
+  .fade9 { animation: f9 9s cubic-bezier(.25,.1,.25,1) infinite; }
+  @keyframes f9 { 0%, 88% { opacity: 1; } 96%, 100% { opacity: 0; } }
+  .fd { animation-fill-mode: both; }
+  svg * { transform-box: fill-box; transform-origin: center; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade9, .a { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">DUTEXT · DESIGN PROPOSAL · 内部讨论稿</div>
+    <h1>下一批指令与新功能：<br>让手更省事，让 AI 更笃定</h1>
+    <p class="sub">基于真实工作习惯与既有交互范式（校对符号 / 白板笔势 / 页面缩略图 / 块编辑器），提出 9 个新指令、意图回显系统、多页面排版完整方案与提示词架构。每个指令都配有与产品「功能说明书」同款的动画。</p>
+    <div class="meta">2026-09-28 · glm-place 分支 · 对应仓库DuText 当前实现（layout 加粗 + compose 画版）</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ============ 0 摘要 ============ -->
+<h2><span class="no">00</span>一页摘要</h2>
+<p class="lead">你要的两个问题，答案各是一句话：</p>
+<div class="callout blue">
+  <b>要加什么指令？</b> 把「校对符号」搬进来：划掉＝删除、圈＋箭头＝移动、虚线＝分页、大圈＋旁写＝成节、空框＋字＝插图占位、圈＋？＝提问。这些符号人类已经在纸面上用了一百年（ISO 5776 校对符号标准），不需要学习。
+</div>
+<div class="callout gold">
+  <b>第二页内容怎么移到第一页？</b> 用户视角：<b>圈住那段文字，箭头直接拖到左侧页面缩略图栏的「第 1 页」上</b>，松手出现意图条「把这段移到第 1 页顶部」，点「排一版」生效。系统视角：LaTeX 里没有"页"只有"流"，所以底层执行的不是"移动内容到某页"，而是<b>把该段落的源码块搬移到目标页首个块之前</b>，重新编译让"页"重新长出来。页是输出，块才是操作对象。
+</div>
+
+<!-- ============ 1 设计原则 ============ -->
+<h2><span class="no">01</span>六条设计原则（每条都有出处）</h2>
+<p class="lead">所有指令设计从这六条推出。前三条管「用户好不好画」，后三条管「AI 好不好懂」。</p>
+
+<div class="grid2">
+  <div class="card"><h4>① 沿用百年行规，零学习成本</h4><p>校对行业有国际标准符号（ISO 5776:2022，16 个核心符号；英式 BS 5261-2 更全）：删除＝划线、插入＝^、调位＝圈。学生改论文时在打印稿上就是这么画的。用行规做手势，用户第一次就会用。</p></div>
+  <div class="card"><h4>② 一墨一意，绝不猜二义</h4><p>每一组笔迹只产生一个意图。宁可让用户多画一次，也不让系统猜"你可能是想……"。歧义交给下面的「意图回显」让用户自己确认，而不是让 AI 拍板。</p></div>
+  <div class="card"><h4>③ 借成熟软件的心智模型</h4><p>页面缩略图栏＋拖拽排序是 PDF Expert / InDesign / macOS Preview 二十年来的标准；块拖拽手柄是 Notion 确立的标准。用户在这些软件里练出来的肌肉记忆直接可用。</p></div>
+  <div class="card"><h4>④ 几何拿结构，模型拿语义</h4><p>笔迹坐标、文字层、源码定位全部由几何/程序完成（可测试、可复现）；AI 只负责模型才擅长的事：读手写标签、判断块语义、消歧。AI 永远不发明坐标、不改措辞。</p></div>
+  <div class="card"><h4>⑤ 先回显，后执行</h4><p>画完不出结果，先出「意图条」：一句人话总结将发生什么。用户确认后「排一版」才执行。 ambiguous 的输入在这里被拦下，AI 拿到的是确认过的干净意图。（Nielsen 可用性准则 #3 用户控制、#9 防错）</p></div>
+  <div class="card"><h4>⑥ 页是影子，块是身体</h4><p>LaTeX 的页是排版结果不是容器。所有跨页操作的底层都是<b>块操作＋重排版</b>；界面上的"页"只是块模型的投影。想清楚这一点，多页面问题就从"不可能"变成"顺理成章"。</p></div>
+</div>
+
+<!-- ============ 2 交互模型 ============ -->
+<h2><span class="no">02</span>交互模型：意图回显系统（先做这个）</h2>
+<p class="lead">这是所有新指令的公共底座，优先级高于任何单个手势。画完一条，右下立即浮出「意图条」——一句人话说明将发生什么；点「排一版」时执行的是这些<b>确认过的</b>意图，而不是让 AI 猜截图。</p>
+
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <text class="sc-dim" x="24" y="46">Layout is hard to describe</text>
+    <text class="sc-t"  x="24" y="66">Drawing is faster.</text>
+    <text class="sc-dim" x="24" y="86">Sketch it instead.</text>
+    <g class="fade9">
+      <ellipse class="ik ik-r drawn a" cx="88" cy="61" rx="78" ry="15" pathLength="1" style="animation: s0a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r drawn a" d="M24 100 L270 97 L268 104 L26 107 Z" pathLength="1" style="animation: s0b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g class="a" style="animation: s0c 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="196" y="40" width="88" height="20" rx="10"/>
+        <text class="sc-w" x="240" y="53" text-anchor="middle" font-size="9">① 加粗此句</text>
+      </g>
+      <g class="a" style="animation: s0d 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="196" y="66" width="88" height="20" rx="10"/>
+        <text class="sc-w" x="240" y="79" text-anchor="middle" font-size="9">② 删除此段</text>
+      </g>
+      <g class="a" style="animation: s0e 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect x="108" y="122" width="84" height="24" rx="12" fill="#0a84ff"/>
+        <text x="150" y="138" text-anchor="middle" fill="#fff" font-size="11" font-weight="650">排一版 ②</text>
+      </g>
+      <g class="a" style="animation: s0f 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-t" x="24" y="66" style="font-weight:700">Drawing is faster.</text>
+        <text class="sc-dim" x="24" y="86" opacity="0.25">Sketch it instead.</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>意图条（Intent chips）<span class="tag p0">P0 · 底座</span></h3>
+    <dl>
+      <dt class="u">用户侧</dt>
+      <dd>每确认一条指令（右键 / Ctrl+滚轮），画布边侧浮出一条意图：「① 加粗：Drawing is faster.」。点意图条高亮对应笔迹；划掉意图条＝撤销这一条。「排一版」按钮实时显示待执行条数。</dd>
+      <dt>AI 侧</dt>
+      <dd>发给模型的不再是"截图请你理解"，而是<b>几何（笔迹框）＋编号文字层＋确认过的意图草案</b>。模型只做两件事：把意图条的文字抄准（逐字引用 [Lnn] 行）、标记置信度。看不懂时意图条直接显示「红笔这条没看懂——点此看猜测」，猜错率变成可见、可纠正的东西。</dd>
+      <dt class="u">为什么先做它</dt>
+      <dd>它同时解决三个问题：用户对"AI 到底理解了什么"从黑盒变透明；二义笔迹在被执行前被拦截；提示词从"理解整张图"降级为"核对已结构化的意图"，出错率断崖式下降。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ============ 3 指令词汇表 ============ -->
+<h2><span class="no">03</span>指令词汇表（9 个，按优先级）</h2>
+<p class="lead">每个指令四栏：怎么画（用户习惯依据）→ 系统怎么懂（几何/AI 分工）→ 边界情况 → 验收标准。动画循环播放，最终帧即完整效果。</p>
+
+<!-- G1 划掉删除 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <text class="sc-dim" x="24" y="42">3.2　Second method</text>
+    <text class="sc-t" x="24" y="62">This paragraph is outdated</text>
+    <text class="sc-t" x="24" y="78">and should be removed</text>
+    <text class="sc-t" x="24" y="94">from the report.</text>
+    <text class="sc-t" x="24" y="122">This paragraph stays here.</text>
+    <g class="fade9">
+      <path class="ik ik-r drawn a" d="M20 60 L214 58 M212 66 L22 72 M24 80 L210 78 M208 88 L26 90" pathLength="1"
+        style="animation: g1a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r a" d="M214 50 l8 8 M222 50 l-8 8" style="animation: g1b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g class="a" style="animation: g1c 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="196" y="104" width="88" height="20" rx="10"/>
+        <text class="sc-w" x="240" y="117" text-anchor="middle" font-size="9">删除此段 ×</text>
+      </g>
+      <g class="a" style="animation: g1d 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-t" x="24" y="62" opacity="0">·</text>
+        <text class="sc-dim" x="24" y="66">↑ 此段已删除，下方内容上移</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G1 · 划掉删除 <span class="tag p0">P0</span><span class="tag">当前稿 / 多页</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>在要删的段落/图上画一条或几条横线（涂掉）。这是校对符号里的标准「删除」记号，<b>不需要学习</b>——每个改过打印稿的人都这么干。整体删＝一条粗划线穿过整段；只删一句＝短划线只压那句。</dd>
+      <dt>系统怎么懂</dt>
+      <dd><b>几何为主：</b>划线笔迹的包围盒与文字层各词框求交，覆盖率 ≥50% 的连续行块即为目标——这一步不需要 AI。AI 只在两种情况介入：目标块是否连带<section>标题（整节删除）、以及部分删除时从编号行里挑出确切句子。执行器直接删除源码中对应块（含环境包裹），完全不经过模型改写。</dd>
+      <dt>边界</dt>
+      <dd>划到一半犹豫停笔＝短划线，只删被压住的那几句（意图条会写明删哪几句）；划线穿过两个块＝拆成两条意图，各自回显。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 划一段→意图条文字与段落逐字一致；② 排一版后该段源码被整块移除、其余内容零改动（diff 校验）；③ 误触划线点 × 即消失。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G2 页内移动 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <g class="fade9">
+      <text class="sc-dim a" x="30" y="44" style="animation: g2a 9s cubic-bezier(.25,.1,.25,1) infinite">Paragraph A</text>
+      <g class="a" style="animation: g2b 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-t" x="30" y="70">Paragraph B (moved)</text>
+        <text class="sc-t" x="30" y="84">second line of B</text>
+      </g>
+      <text class="sc-dim a" x="30" y="112" style="animation: g2c 9s cubic-bezier(.25,.1,.25,1) infinite">Paragraph C</text>
+      <ellipse class="ik ik-r drawn a" cx="60" cy="76" rx="44" ry="20" pathLength="1" style="animation: g2d 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r drawn a" d="M104 84 C 140 100 150 112 152 128" pathLength="1" style="animation: g2e 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r a" d="M152 132 l-6.5 -4.5 M152 132 l1 -7.5" style="animation: g2f 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g class="a" style="animation: g2g 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="182" y="112" width="102" height="20" rx="10"/>
+        <text class="sc-w" x="233" y="125" text-anchor="middle" font-size="9">B 移到 C 之后</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G2 · 页内移动 <span class="tag p0">P0</span><span class="tag">复用现有箭头</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>圈住要挪的块，箭头指向目标位置——指向<b>两块之间的空隙</b>表示"插到这里"，指向某块表示"放到它后面"。这与现有画版的「圈＋箭头＋框」同源，用户已会。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>几何层做两件事：把圈住的词聚成块（文字层按行/段聚类）；把箭头终点对齐到最近的<b>块间隙</b>（文字层的行间空隙带，宽 ≥ 12pt 才算合法落点，落点吸附防抖）。意图条写「『B』移到『C』之后」。执行器在源码里把 B 的源码区间整体搬到 C 之后，其余零改动。</dd>
+      <dt>边界</dt>
+      <dd>箭头落点不在任何间隙附近＝意图条提示「箭头没指向空隙，请指到两段之间」；移动的是 § 标题＝意图条追问「连小节一起移吗？」。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 空隙吸附半径 ≥15pt，错 3mm 内仍吸附；② 执行后除被移块外其余段落源码逐字节不变；③ 浮动图（figure）移动后给出「图是浮动体，落点受 [htbp] 影响」的提示而非假装精确。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G3 跨页移动 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 190" class="sc" aria-hidden="true">
+    <rect x="120" y="10" width="172" height="170" rx="8" class="sc-page"/>
+    <text class="sc-dim" x="132" y="30" font-size="9">第 2 页</text>
+    <text class="sc-t" x="134" y="52">实验设置：本文采用……</text>
+    <text class="sc-t" x="134" y="68">对照组与实验组各 30 人……</text>
+    <text class="sc-t" x="134" y="84">测量指标包括……</text>
+    <text class="sc-dim" x="134" y="112">结果与讨论……</text>
+    <text class="sc-dim" x="134" y="128">结论……</text>
+    <!-- 页栏 -->
+    <rect x="10" y="10" width="86" height="170" rx="10" fill="#2c2c2e"/>
+    <text class="sc-w" x="20" y="28" font-size="9" opacity="0.7">页面</text>
+    <g class="a" style="animation: g3t1 9s cubic-bezier(.25,.1,.25,1) infinite">
+      <rect x="22" y="36" width="60" height="52" rx="4" fill="#fcfcfa" stroke="#0a84ff" stroke-width="1.6"/>
+      <text x="30" y="52" font-size="7" fill="#3a3a3c">第 1 页</text>
+      <line x1="28" y1="60" x2="74" y2="60" stroke="#c7c7cc" stroke-width="2"/>
+      <line x1="28" y1="68" x2="66" y2="68" stroke="#c7c7cc" stroke-width="2"/>
+      <rect x="28" y="72" width="46" height="8" rx="2" style="animation: g3hl 9s cubic-bezier(.25,.1,.25,1) infinite" fill="rgba(10,132,255,0.35)"/>
+    </g>
+    <rect x="22" y="98" width="60" height="52" rx="4" fill="#fcfcfa" stroke="#48484a"/>
+    <text x="30" y="114" font-size="7" fill="#3a3a3c">第 2 页</text>
+    <line x1="28" y1="122" x2="74" y2="122" stroke="#c7c7cc" stroke-width="2"/>
+    <line x1="28" y1="130" x2="66" y2="130" stroke="#c7c7cc" stroke-width="2"/>
+    <g class="fade9">
+      <ellipse class="ik ik-r drawn" cx="176" cy="66" rx="66" ry="24" pathLength="1" style="animation: g3a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r drawn" d="M108 62 C 96 62 90 62 86 62" pathLength="1" style="animation: g3b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r" d="M82 62 l7 -4.5 M82 62 l7 4.5" style="animation: g3c 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g style="animation: g3d 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="150" y="140" width="120" height="20" rx="10"/>
+        <text class="sc-w" x="210" y="153" text-anchor="middle" font-size="9">移到第 1 页 · 顶部</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G3 · 跨页移动（第二页 → 第一页）<span class="tag p0">P0</span><span class="tag">需要页面缩略图栏</span></h3>
+    <dl>
+      <dt class="u">怎么画（你问的场景）</dt>
+      <dd>翻到第 2 页，圈住「实验设置」那段，<b>箭头往左拖出页面，落点在页面缩略图栏的「第 1 页」缩略图上</b>。缩略图闪蓝、顶部出现插入条，松手即出意图条：「移到第 1 页 · 顶部」。想放到第 1 页某段之后？落点指到缩略图里对应的行之间即可（缩略图本身就是块的投影）。</dd>
+      <dt>系统怎么懂（底层三步）</dt>
+      <dd><b>① 源定位：</b>圈住的词通过文字层 + SyncTeX（Tectonic 支持 <code>--synctex</code>，能给出 PDF 坐标 ↔ 源码行列的精确映射）定位到源码中该段的字符区间；<b>② 块搬运：</b>执行器把这段源码剪切、粘贴到目标锚点之前——目标锚点 = "第 1 页第一个文本行"对应的源码块；<b>③ 重排版：</b>重新编译，让"页"重新长出来。全程无模型参与，所以零措辞风险。AI 只在源定位有歧义（同名短语多处出现）时被叫来做<b>选择题</b>：给出候选块列表让它挑编号，而不是让它生成。</dd>
+      <dt>边界</dt>
+      <dd>移动会推挤后面所有内容——意图条写清「第 2 页起内容将顺延」，这是排版流的本性，不藏不装；跨页移动在画版模式仍禁用（画版＝单页自由版面，两个心智模型不混）。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 圈+箭头到缩略图→意图条目标正确；② 执行后该段出现在第 1 页顶部、其余内容零措辞改动（diff 只有一处搬移）；③ 歧义短语触发候选选择而非静默猜。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G4 适配框 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <g class="fade9">
+      <g class="a" style="animation: g4fig 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect x="28" y="46" width="70" height="52" rx="4" fill="#d8d8dc"/>
+        <text class="sc-dim" x="34" y="112" font-size="9">图 3：准确率</text>
+      </g>
+      <ellipse class="ik ik-r drawn" cx="62" cy="74" rx="52" ry="38" pathLength="1" style="animation: g4a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <path class="ik ik-r drawn" d="M116 72 C 150 72 160 72 186 72" pathLength="1" style="animation: g4b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <rect class="ik ik-r drawn" x="190" y="34" width="94" height="76" rx="4" pathLength="1" style="animation: g4c 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="sc-dim" x="196" y="126" font-size="9" style="animation: g4d 9s cubic-bezier(.25,.1,.25,1) infinite">目标框：放这么大</text>
+      <g style="animation: g4e 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-w" x="237" y="20" text-anchor="middle" font-size="9" fill="#0a84ff">按框适配</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G4 · 适配框（移动＋缩放统一）<span class="tag p1">P1</span><span class="tag">画版语法升级</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>圈住图/表/段落，箭头拉到一个<b>目标框</b>——内容按框适配：框更小就缩字号/缩图，框更大就放大，原尺寸放得下就保持。把画版模式里已验证的「矩形＋箭头＋同色目标框」语法升级回当前稿模式，<b>一套语法覆盖搬移、缩放、跨栏摆放三种需求</b>，用户少学一条指令。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>意图 kind 复用 <code>place</code>，新增 <code>fit_policy: keep|shrink|grow|exact</code>。几何层出源框与目标框；执行器按策略改 <code>\includegraphics[width=…]</code> 或字号/行距；Pro 只在「框内如何断行更好看」这种审美层介入，且接受自检＋确定性兜底（现有管线原样复用）。</dd>
+      <dt>边界</dt>
+      <dd>目标框比例与原图差异过大时意图条提示「将裁剪/留白」；表格不缩字号（会破坏可读性），改为提示缩列宽。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 圈小图＋大框→图放大且清晰度参数同步改；② 同尺寸框→零改动并在意图条注明「原尺寸已适配」；③ 框在另一栏→内容跨栏且页内其他元素不动。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G5 分页线 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <g class="fade9">
+      <rect class="sc-page a" x="20" y="14" width="112" height="142" rx="6" style="animation: g5p1 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <rect class="sc-page a" x="168" y="14" width="112" height="142" rx="6" style="animation: g5p2 9s cubic-bezier(.25,.1,.25,1) infinite; opacity: 0"/>
+      <text class="sc-t a" x="34" y="44" style="animation: g5t1 9s cubic-bezier(.25,.1,.25,1) infinite">第一部分内容……</text>
+      <text class="sc-t a" x="34" y="62" style="animation: g5t2 9s cubic-bezier(.25,.1,.25,1) infinite">第二部分内容……</text>
+      <text class="sc-dim a" x="34" y="92" style="animation: g5t3 9s cubic-bezier(.25,.1,.25,1) infinite">后面的内容……</text>
+      <text class="sc-dim a" x="34" y="110" style="animation: g5t4 9s cubic-bezier(.25,.1,.25,1) infinite">更后面的内容……</text>
+      <path class="ik ik-b drawn a" d="M30 76 L122 76" stroke-dasharray="5 4" pathLength="1" style="animation: g5a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g class="a" style="animation: g5b 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="108" y="120" width="88" height="20" rx="10"/>
+        <text class="sc-w" x="152" y="133" text-anchor="middle" font-size="9">此处分页</text>
+      </g>
+      <g class="a" style="animation: g5c 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-dim" x="196" y="44" font-size="10">第 1 页</text>
+        <text class="sc-dim" x="196" y="76" font-size="10">第 2 页</text>
+        <text class="sc-t" x="182" y="62">后面的内容……</text>
+        <text class="sc-dim" x="182" y="96">更后面的……</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G5 · 分页线 <span class="tag p1">P1</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>用蓝笔在页面上画一条<b>横贯页宽的虚线</b>（虚线＝逻辑切分，与黑笔实线＝视觉装饰线天然区分）。或在页面缩略图右键菜单选「在此处分页」。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>几何判定：线段水平度（±5°）、长度 ≥ 70% 页宽、虚线笔迹（多点间歇特征）。执行器在最近块边界插入 <code>\newpage</code>——注意用 <code>\newpage</code> 而非 <code>\clearpage</code>：前者只分页不冲掉浮动体，行为最接近用户的纸面直觉。意图条写「在此处分页（其后内容移到下页）」。</dd>
+      <dt>边界</dt>
+      <dd>位置落在段落中间＝吸附到最近段界并在意图条注明；已有显式分页的附近再画＝提示已存在而非重复插入。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 虚线处出现分页且点实线（黑笔）不触发；② 撤销意图条即移除 \newpage；③ 段中间画线吸附到段界。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G6 分组成节 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <text class="sc-dim" x="28" y="52">问卷数据整理……</text>
+    <text class="sc-dim" x="28" y="76">访谈记录摘要……</text>
+    <text class="sc-dim" x="28" y="100">观测笔记……</text>
+    <g class="fade9">
+      <path class="ik ik-b drawn" d="M20 34 C 16 92 40 116 150 118 C 262 116 282 88 278 44 C 274 22 180 20 96 24 C 52 26 22 26 20 34" pathLength="1"
+        style="animation: g6a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="236" y="26" font-size="13" font-style="italic" fill="#2563eb" font-weight="600"
+        style="animation: g6b 9s cubic-bezier(.25,.1,.25,1) infinite">方法</text>
+      <g class="a" style="animation: g6c 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect x="22" y="32" width="120" height="16" rx="4" fill="#2563eb" opacity="0.92"/>
+        <text x="30" y="44" font-size="10" font-weight="700" fill="#fff">1　方法</text>
+      </g>
+      <g class="a" style="animation: g6d 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="196" y="120" width="90" height="20" rx="10"/>
+        <text class="sc-w" x="241" y="133" text-anchor="middle" font-size="9">成节《方法》</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G6 · 分组成节 <span class="tag p2">P2</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>用一个<b>大圈</b>把几块零散内容圈在一起，在圈旁手写（或备注栏输入）节名，比如「方法」。对应你最初愿景里"这三段是一组、整理成报告"的场景。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>几何出圈住的行块列表；AI 干唯一擅长的事：<b>读手写标签</b>（视觉模型）＋确认这些块适合组成一节。执行器在源码中给这些块包上 <code>\section{方法}</code>（层级由现有标题结构推断）。没写标签时，AI 给出三个从内容提炼的候选节名放进意图条供点选——<b>生成候选而不是替用户定夺</b>。</dd>
+      <dt>边界</dt>
+      <dd>圈内含已有节标题＝提示层级冲突并建议子节；圈跨页＝拆成跨页分组意图（P3 再支持，先拦下说明）。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 圈＋手写「方法」→ \section{方法} 正确包裹且原文字零改动；② 无标签→出现三个候选节名；③ 层级自动匹配（已有 \section 时用 \subsection）。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G7 旁注约束 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <g class="fade9">
+      <text class="sc-dim a" x="30" y="56" style="animation: g7a 9s cubic-bezier(.25,.1,.25,1) infinite">这段结论很重要……</text>
+      <text class="sc-dim a" x="30" y="74" style="animation: g7b 9s cubic-bezier(.25,.1,.25,1) infinite">需要突出显示……</text>
+      <text class="sc-dim a" x="30" y="92" style="animation: g7c 9s cubic-bezier(.25,.1,.25,1) infinite">正文继续……</text>
+      <text class="a" x="216" y="60" font-size="14" font-style="italic" fill="#2563eb" font-weight="650"
+        style="animation: g7d 9s cubic-bezier(.25,.1,.25,1) infinite">两栏</text>
+      <path class="ik ik-b a" d="M212 64 C 190 70 172 72 152 70" style="animation: g7e 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <g class="a" style="animation: g7f 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="150" y="110" width="120" height="20" rx="10"/>
+        <text class="sc-w" x="210" y="123" text-anchor="middle" font-size="9">此段约束：两栏排版</text>
+      </g>
+      <g class="a" style="animation: g7g 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <text class="sc-dim" x="30" y="56" font-size="8">这段结论很重要……</text>
+        <text class="sc-dim" x="150" y="56" font-size="8">这段结论很重要……</text>
+        <text class="sc-dim" x="30" y="70" font-size="8">需要突出显示……</text>
+        <text class="sc-dim" x="150" y="70" font-size="8">需要突出显示……</text>
+        <text class="sc-dim" x="30" y="92">正文继续……</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G7 · 旁注约束 <span class="tag p2">P2</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>在页边空白处写短约束词（两栏 / 字号小一档 / 行距 1.5 / 放右），画一条小连线拴到目标块。和右下角备注栏的区别：<b>备注栏约束整条指令，旁注只约束拴住的那一块</b>——空间绑定，谁的约束谁领走。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>连线终点确定归属块（几何）；视觉模型读手写词并与<b>约束枚举表</b>匹配：两栏/单栏、字号±1、行距数值、对齐方式、留白。枚举表外的词不硬猜——意图条显示「旁注『宋体』：已识别，但该约束属于整条指令，已帮你写进备注栏」。<b>AI 的输出被枚举表收窄，理解错误率天然下降</b>。</dd>
+      <dt>边界</dt>
+      <dd>没画连线＝按就近块归属并在意图条写明；约束互相冲突（同块两栏＋字号放大放不下）＝意图条提示冲突让用户取舍。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 手写「两栏」→ 该段以 multicol/paracol 双栏且仅该段；② 无法识别的字迹→诚实报错并建议改用备注栏；③ 枚举外词汇路由到备注而非硬执行。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G8 插入占位 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <g class="fade9">
+      <text class="sc-dim a" x="26" y="46" style="animation: g8a 9s cubic-bezier(.25,.1,.25,1) infinite">实验流程如右图所示……</text>
+      <rect class="ik ik-r drawn" x="60" y="58" width="86" height="58" rx="4" pathLength="1" style="animation: g8b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="103" y="92" text-anchor="middle" font-size="13" fill="#dc2626" font-weight="650" style="animation: g8c 9s cubic-bezier(.25,.1,.25,1) infinite">图</text>
+      <g class="a" style="animation: g8d 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect x="60" y="58" width="86" height="58" rx="4" fill="#eceff3" stroke="#98989d" stroke-dasharray="4 3"/>
+        <circle cx="88" cy="82" r="9" fill="none" stroke="#98989d" stroke-width="2"/>
+        <path d="M82 82 l5 5 l8 -9" fill="none" stroke="#98989d" stroke-width="2" stroke-linecap="round"/>
+        <text x="103" y="106" text-anchor="middle" font-size="8" fill="#6b7683">图 1：在此插入流程图</text>
+      </g>
+      <text class="sc-dim a" x="26" y="136" style="animation: g8e 9s cubic-bezier(.25,.1,.25,1) infinite">正文继续……</text>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G8 · 插入占位 <span class="tag p1">P1</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>用矩形工具拖一个空框，在框里写一个字：图 / 表 / 目录 / 公式。这是"我知道这里该有张图，回头再补"的真实工作流——先占位，不打断写作。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>空矩形（无文字层命中）＋框内单字标签 → 插入对应占位环境：<code>figure</code>（含 caption 槽与 <code>[htbp]</code>）、<code>table</code>（三线表骨架）、<code>\tableofcontents</code>。AI 的活：根据上下文给 caption 草稿（放进意图条，点接受才写入）。微软研究院的 SpaceInk（UIST 2019）研究过同一个问题：在文档里"腾出书写空间"——我们用占位框回答它。</dd>
+      <dt>边界</dt>
+      <dd>框画在两段之间＝浮动体就近锚定并提示可能漂移；写「图」但框比例竖长＝提示竖版画幅。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 空框＋「图」→ 编译出带占位区的 figure 且 caption 草稿在意图条里；② 占位后正文引用「如右图所示」高亮提示可挂 \ref；③ 删除占位＝G1 划掉即可。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G9 页面操作 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect x="10" y="10" width="120" height="150" rx="10" fill="#2c2c2e"/>
+    <text class="sc-w" x="22" y="30" font-size="9" opacity="0.7">页面（可拖拽）</text>
+    <g class="fade9">
+      <rect class="a" x="24" y="44" width="58" height="30" rx="4" fill="#fcfcfa" stroke="#48484a" style="animation: g9a 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="30" y="62" font-size="8" fill="#3a3a3c" style="animation: g9a 9s cubic-bezier(.25,.1,.25,1) infinite">第 1 页</text>
+      <rect class="a" x="30" y="82" width="58" height="30" rx="4" fill="#fcfcfa" stroke="#0a84ff" stroke-width="1.6" style="animation: g9b 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="36" y="100" font-size="8" fill="#3a3a3c" style="animation: g9b 9s cubic-bezier(.25,.1,.25,1) infinite">第 2 页</text>
+      <rect class="a" x="24" y="120" width="58" height="30" rx="4" fill="#fcfcfa" stroke="#48484a" style="animation: g9c 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="30" y="138" font-size="8" fill="#3a3a3c" style="animation: g9c 9s cubic-bezier(.25,.1,.25,1) infinite">第 3 页</text>
+      <line class="a" x1="22" y1="40" x2="86" y2="40" stroke="#0a84ff" stroke-width="3" stroke-linecap="round" style="animation: g9d 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+    </g>
+    <g class="fade9">
+      <text class="sc-dim" x="150" y="40" font-size="10" style="animation: g9e 9s cubic-bezier(.25,.1,.25,1) infinite">拖「第2页」到最上</text>
+      <text class="sc-dim" x="150" y="60" font-size="10" style="animation: g9e 9s cubic-bezier(.25,.1,.25,1) infinite">→ 插入条指明落点</text>
+      <text class="sc-dim" x="150" y="92" font-size="10">缩略图右键：</text>
+      <text class="sc-dim" x="150" y="110" font-size="10">· 在此处分页　· 删除此页</text>
+      <text class="sc-dim" x="150" y="128" font-size="10">· 删除＝删整页内容（列出清单）</text>
+      <text class="sc-dim" x="150" y="146" font-size="10">· 需二次确认，可打回</text>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G9 · 页面栏操作（重排 / 删页）<span class="tag p1">P1</span><span class="tag">依赖页面栏</span></h3>
+    <dl>
+      <dt class="u">怎么操作</dt>
+      <dd>拖缩略图排序、插入条指明落点（Preview / InDesign 二十年惯例）；缩略图右键＝分页 / 删页。删页是危险操作：因为页是流，删页＝<b>删除该页全部块</b>——意图条必须列出将被删的块清单并要求点二次确认。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>缩略图顺序即块顺序的投影：拖拽重排 = 交换源码中对应块的顺序（以显式 \newpage 为界；无显式分页时以顶层块为单位）。这里再次体现「页是影子」：重排页其实是重排块，重编译后页自然跟上。</dd>
+      <dt>边界</dt>
+      <dd>无显式分页的文档里"整页重排"可能引起内容跨页流动——意图条明确写「按块重排，分页位置可能移动」；删空页（无内容）＝只删分页符。</dd>
+      <dt class="u">验收</dt>
+      <dd>① 拖拽出现插入条且松手后缩略图顺序更新；② 删页出现块清单＋二次确认；③ 所有页面操作可整体打回。</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- G10 问询 -->
+<div class="feat">
+  <div class="demo"><svg viewBox="0 0 300 170" class="sc" aria-hidden="true">
+    <rect class="sc-page" x="8" y="10" width="284" height="150" rx="8"/>
+    <g class="fade9">
+      <text class="sc-dim" x="26" y="56">2.1　实验方法</text>
+      <text class="sc-t" x="26" y="76">本文采用对照组设计……</text>
+      <ellipse class="ik ik-b drawn" cx="92" cy="70" rx="70" ry="18" pathLength="1" style="animation: ga 9s cubic-bezier(.25,.1,.25,1) infinite"/>
+      <text class="a" x="182" y="74" font-size="15" font-weight="700" fill="#2563eb" style="animation: gb 9s cubic-bezier(.25,.1,.25,1) infinite">?</text>
+      <g class="a" style="animation: gc 9s cubic-bezier(.25,.1,.25,1) infinite">
+        <rect class="chip" x="140" y="96" width="150" height="46" rx="10"/>
+        <text class="sc-w" x="215" y="112" text-anchor="middle" font-size="9">这是 §2.1 实验方法（2 段）</text>
+        <text class="sc-w" x="215" y="126" text-anchor="middle" font-size="8.5" opacity="0.75">可：移动 · 删除 · 成节 · 加粗</text>
+        <text class="sc-w" x="215" y="137" text-anchor="middle" font-size="8.5" opacity="0.75">不会改动文档，只解释</text>
+      </g>
+    </g>
+  </svg></div>
+  <div>
+    <h3>G10 · 圈选问询 <span class="tag p2">P2</span><span class="tag">信任功能</span></h3>
+    <dl>
+      <dt class="u">怎么画</dt>
+      <dd>圈住任何内容，在旁写一个 <b>？</b>。不产生任何修改——意图条变成解释条：「这是 §2.1 实验方法（2 段）；可以：移动 / 删除 / 成节」。它同时是<b>新手的教学工具</b>和<b>系统自我坦白的窗口</b>：AI 把它理解成什么直接告诉你，理解错了你立刻知道。</dd>
+      <dt>系统怎么懂</dt>
+      <dd>问号手势路由到"只读"分支：复用源定位给出块身份，绝不触发执行器。成本几乎为零，收益是对系统的信任。（对应「给用户解释系统将做什么」这条 AI 产品的责任原则。）</dd>
+    </dl>
+  </div>
+</div>
+
+<!-- ============ 4 多页面 ============ -->
+<h2><span class="no">04</span>多页面排版：完整方案</h2>
+<p class="lead">你的核心问题「第二页内容移到第一页怎么办」拆成三层回答：用户怎么操作（上面 G3 已演示）、界面长什么样（页面栏）、底层怎么做（块模型）。最后是提示词怎么写。</p>
+
+<h3>4.1 页面栏：多页面的家</h3>
+<p>左侧常驻一条<b>页面缩略图栏</b>（可折叠）：当前页高亮、点击跳页、拖拽排序、右键分页/删页。它同时是跨页箭头的<b>落点靶子</b>。这是 PDF 编辑器二十年的标准位置，用户不用想就知道去那找"页"。</p>
+<div class="callout">
+  <b>关键认识：</b>在 LaTeX 里页面栏不是"页的容器"，而是"块的投影"。每一页显示的是"落在这一页上的块"。用户拖页、删页、跨页移动，系统翻译成块操作——因为只有块才是 LaTeX 里真实存在的东西。界面说页的话，底层做块的事，这就是整个多页面方案的枢纽。
+</div>
+
+<h3>4.2 底层架构：块模型（新增 texmap 模块）</h3>
+<pre>
+源码 (main.tex)                块模型 (texmap.py)               界面投影
+┌─────────────────┐   解析    ┌──────────────────────┐   映射   ┌──────────────┐
+│ \section{引言}   │ ───────→ │ Block{kind:section,   │ ──────→ │ 页面栏：每页   │
+│ 引言的正文……     │  synctex  │  src:[L12-L30],       │  渲染页  │ 有哪些块      │
+│ \section{方法}   │  (PDF坐标 │  page:1}              │  号回填  │ 块大纲：层级   │
+│ 方法正文……      │  ↔源码行列)│ Block{kind:para, ...} │         │ 缩略图高亮    │
+└─────────────────┘           └──────────────────────┘         └──────────────┘
+</pre>
+<p>三个要点：</p>
+<div class="grid2">
+  <div class="card"><h4>SyncTeX 是精确映射的钥匙</h4><p>Tectonic 支持 synctex：编译时生成 .synctex 文件，记录 PDF 上每个字与源码行列的对应。圈住的词 → 查 synctex → 精确源码区间。不再依赖字符串模糊匹配（模糊匹配降级为兜底）。</p></div>
+  <div class="card"><h4>执行器只做四种块操作</h4><p>move_block / delete_block / wrap_section / insert_newpage——全部是源码区间的剪切粘贴，全部可单测、可 diff 验证"其余零改动"。模型永远不直接产出源码（compose 自由排版除外，且已有自检+兜底）。</p></div>
+  <div class="card"><h4>多页截图策略</h4><p>视觉模型一次只看一页主截图（现状）；跨页意图时追加目标页<b>小缩略图</b>拼进截图（标注 THUMB）。不给整份文档截图——token 贵、注意力散，且模型不需要看全部内容就能完成意图核对。</p></div>
+  <div class="card"><h4>编译后回填页码</h4><p>执行块操作→重编译→从 synctex 读回每个块现在落在第几页→更新缩略图与意图条的页码引用。用户看到的页码永远是刚编译完的真实页码。</p></div>
+</div>
+
+<h3>4.3 跨页移动的完整时序（底层视角）</h3>
+<pre>
+1. 用户在第 2 页圈住段落 P，箭头拖到页面栏「第 1 页」缩略图上        <span class="c">← 纯前端几何</span>
+2. 意图入列：{kind:"move_block", src_page:2, dst_page:1, dst_pos:"top"}
+3. 点「排一版」→ resolve 阶段：
+   a. P 的词框 --synctex--> 源码区间 [char_start, char_end]         <span class="c">← 确定性</span>
+   b. 目标锚点 = 第 1 页首个文本行 --synctex--> 源码位置             <span class="c">← 确定性</span>
+   c. 若 P 短语在全文多处命中 → 让 Pro 做选择题（给候选编号）        <span class="c">← 唯一动模型的点</span>
+4. execute 阶段：源码剪切粘贴（连同所属环境整体搬运）               <span class="c">← 确定性</span>
+5. 编译 → 失败则走现有 repair 循环（最多 2 次）
+6. synctex 回读新分页 → 缩略图更新 → 用户收下/打回                  <span class="c">← 现有循环</span>
+</pre>
+
+<!-- ============ 5 提示词架构 ============ -->
+<h2><span class="no">05</span>提示词架构：怎么写才能让 AI 稳定执行</h2>
+<p class="lead">总纲一句话：<b>让模型的每一步输出都是"选择题或抄写题"，绝不让它做"证明题"</b>。坐标来自笔迹、措辞来自文字层、结构操作来自执行器——模型只填语义空格。</p>
+
+<h3>5.1 感知层提示词（每条指令一个模板）</h3>
+<pre>
+<span class="c"># perceive_move —— 识别"圈+箭头"意图（视觉模型，一次一页）</span>
+You see one PDF page. Ink is the user's overlay. The numbered text layer
+([Lnn]) is below.
+A MOVE intent = one colored loop around a text block + an arrow.
+The arrow target is described by geometry we already computed (see
+arrow_target below) — do NOT guess coordinates.
+
+Return JSON only:
+{
+  <span class="k">"kind"</span>: "move_block",
+  <span class="k">"source_text"</span>: <span class="s">"«quote CHARACTER-FOR-CHARACTER from [Lnn] lines»"</span>,
+  <span class="k">"confidence"</span>: "high" | "low"
+}
+
+Rules:
+R1. source_text must be copied character-for-character from the
+    numbered lines. Never paraphrase. Never join lines creatively.
+R2. If the loop covers multiple paragraphs, set confidence=low.
+R3. If no loop+arrow pair exists, return {"kind":"none"}.
+</pre>
+
+<h3>5.2 消歧提示词（只在源定位有歧义时调用，是选择题不是证明题）</h3>
+<pre>
+<span class="c"># disambiguate —— Pro 模型，给候选挑编号</span>
+The phrase "实验设置：本文采用" appears in N candidate blocks:
+1. §2 实验设置 (src L40-L58, currently page 2)
+2. §4 实验设置补充 (src L112-L119, currently page 4)
+User selected the one near page-2 top. Return JSON {"block": 1}.
+Do not explain. Do not output anything else.
+</pre>
+
+<h3>5.3 五条硬规则（写进每类提示词的 R1-R5）</h3>
+<table>
+  <tr><th>规则</th><th>为什么</th></tr>
+  <tr><td><b>R1 逐字引用</b>：文字一律从编号文字层抄，禁止转述</td><td>转述是措辞漂移的唯一来源；抄写题的正确率远高于证明题</td></tr>
+  <tr><td><b>R2 坐标禁造</b>：几何只来自笔迹数据，模型不许输出坐标</td><td>模型没有空间计算能力，输出坐标必然幻觉</td></tr>
+  <tr><td><b>R3 枚举收窄</b>：kind、约束词、fit_policy 全部用枚举表</td><td>自由文本的输出空间无限大，枚举把错误率压到可测</td></tr>
+  <tr><td><b>R4 自检字段</b>：返回前自填 checks，false 触发确定性兜底</td><td>让模型自己承认失败，好过让它硬编一个错的结果</td></tr>
+  <tr><td><b>R5 置信度必填</b>：low 置信度不执行，转成问询/候选给用户</td><td>不确定就上抛，永远好过静默出错</td></tr>
+</table>
+
+<h3>5.4 失败 taxonomy（每种失败都有明确的接盘者）</h3>
+<div class="grid2">
+  <div class="card"><h4>几何失败（笔迹不构成任何已知手势）</h4><p>意图条：「这条没看懂」。给最接近的两个猜测点选。<b>不调用模型</b>，省钱省时。</p></div>
+  <div class="card"><h4>定位失败（文字层找不到引用块）</h4><p>模糊匹配兜底（现有的 longest_span 思路）；仍失败→意图条请用户圈准一点。<b>不调用模型</b>。</p></div>
+  <div class="card"><h4>语义失败（多处命中/手写不认识）</h4><p>消歧选择题（Pro）或诚实报错。<b>模型的输出被候选列表约束</b>。</p></div>
+  <div class="card"><h4>编译失败</h4><p>现有 repair 循环（日志回喂，最多 2 次）。这是唯一让模型碰完整源码的地方，且只许"最小修复"。</p></div>
+</div>
+
+<!-- ============ 6 配套功能 ============ -->
+<h2><span class="no">06</span>配套功能（按用户工作流推出来）</h2>
+<table>
+  <tr><th>功能</th><th>工作习惯依据</th><th>设计要点</th><th>优先级</th></tr>
+  <tr><td><b>意图历史（时间线）</b></td><td>写报告是迭代过程，常想"退回上午那版"</td><td>已有 data/history 备份，补一个「历史」面板：每次收下存一帧，缩略图浏览、一键恢复。<b>已有底层，只差 UI</b></td><td><span class="tag p0">P0</span></td></tr>
+  <tr><td><b>块大纲面板</b></td><td>长文档靠标题导航；结构级调整在大纲里比画布快</td><td>章节树列表：点击跳页、拖拽排序（= G2 的结构通路）。同一块模型，两种视图</td><td><span class="tag p2">P2</span></td></tr>
+  <tr><td><b>导出 .tex / 比对视图</b></td><td>报告常要交 LaTeX 源或看改动</td><td>导出当前源码；收下前可展开"这次改了什么"（意图条列表即 diff 摘要）</td><td><span class="tag p1">P1</span></td></tr>
+  <tr><td><b>模板起步</b></td><td>目标用户的第一障碍是"空白文档"</td><td>内置课程报告 / UROP 报告 / 简历 / proposal 四个骨架 .tex，选模板→直接进入画画</td><td><span class="tag p1">P1</span></td></tr>
+  <tr><td><b>偏好学习</b></td><td>同一人的排版决定高度一致（字号、留白习惯）</td><td>从历史收下记录提炼偏好，新指令的提示词附上「此用户偏好」段。<b>用数据个性化，不靠用户调参</b></td><td><span class="tag p2">P2</span></td></tr>
+  <tr><td><b>PDF/文本导入</b></td><td>目标用户手里是 Word 和草稿，不是 .tex</td><td>PDF 走文字层还原成段落骨架（图片后补）；粘贴纯文本一键成骨架。有此功能才算对目标人群开门</td><td><span class="tag p0">P0</span></td></tr>
+</table>
+
+<!-- ============ 7 路线图 ============ -->
+<h2><span class="no">07</span>路线图建议</h2>
+<p class="lead">排序依据：先做「让每次生成更可控」的（意图条），再做「扩大词汇量」的（新手势），最后做「长期资产」的（块模型+页面栏）。每档做完都独立可用、可测试、可上 GitHub。</p>
+<table>
+  <tr><th>批次</th><th>内容</th><th>为什么先做</th></tr>
+  <tr><td><b>P0 · 可控性</b></td><td>意图回显条、划掉删除、页面缩略图栏、跨页移动（G3）、历史面板、PDF/文本导入</td><td>意图条是所有后续指令的底座；跨页移动是你点名要的场景；导入解决"谁来用"</td></tr>
+  <tr><td><b>P1 · 词汇量</b></td><td>适配框统一（G4）、分页线（G5）、插入占位（G8）、页面栏右键操作（G9）、导出 .tex、模板起步</td><td>扩大手势覆盖面，每个都小而独立</td></tr>
+  <tr><td><b>P2 · 结构力</b></td><td>分组成节（G6）、旁注约束（G7）、块大纲、圈选问询（G10）、偏好学习</td><td>依赖块模型成熟；对应"零散内容整理成报告"的原始愿景</td></tr>
+  <tr><td><b>P3 · 生态</b></td><td>iPad / Apple Pencil（约 Defeat 一下笔锋、防误触）、多人文档、LaTeX 工程目录（多文件/图/bib）</td><td>交互范式验证成功后再放大</td></tr>
+</table>
+
+<div class="callout green">
+  <b>验证优先：</b>路线图每一步都应先在 5–10 个真实同学身上验证（给同一份任务稿，量时间、问"下次还用吗"），再投入下一批。P0 做完就是一个值得拿去测的版本。
+</div>
+
+<!-- ============ 8 参考资料 ============ -->
+<h2><span class="no">08</span>参考资料</h2>
+<ol class="refs">
+  <li>ISO 5776:2022《印刷技术——文字校对符号》国际标准（16 个核心校对符号）：见 <a href="https://en.wikipedia.org/wiki/ISO_5776">Wikipedia: ISO 5776</a> 与 <a href="https://www.iso.org/obp/ui/en/#!iso:std:75955:en">ISO 官方目录</a>；英式更全的校对符号见 BS 5261-2:2005。</li>
+  <li>Pedersen, McCall, Moran &amp; Halasz（Xerox PARC）Tivoli 电子白板系列，特别是《Pen-Based Interaction Techniques for Organizing Material on an Electronic Whiteboard》——"笔迹即指令"的直接先驱；标记菜单理论见 Kurtenbach &amp; Buxton 的 Marking Menus。</li>
+  <li>SpaceInk（Microsoft Research, UIST 2019, Romat et al.）：通过重排文档为批注腾出空间的交互设计空间——G8 插入占位的学术依据，见 <a href="https://www.microsoft.com/en-us/research/publication/spaceink/">Microsoft Research 页面</a>。</li>
+  <li>页面缩略图拖拽排序的行业惯例：Adobe InDesign <a href="https://helpx.adobe.com/indesign/desktop/create-and-organize-pages/arrange-and-order-pages/change-page-spread-display.html">Pages 面板</a>、macOS Preview 侧栏、PDF Expert「组织页面」；社区反馈指出拖拽落点指示不清晰是最大痛点（r/indesign）——我们的插入条设计直接回应它。</li>
+  <li>块级编辑交互：Notion 的块手柄＋拖拽插入条已成为块编辑器事实标准；结构视图与画布视图同源（同一块模型两种投影）。</li>
+  <li>Nielsen 十大可用性准则（#3 用户控制与自由、#5 防错、#9 帮助识别错误并恢复）与 Apple《Designing Fluid Interfaces》(WWDC 2018)、Apple HIG 反馈章节——意图条与失败分类学的框架来源。</li>
+  <li>LaTeX 分页机制：\newpage 与 \clearpage 的语义差异见 Overleaf 文档（\clearpage 会冲出所有浮动体，\newpage 不会）——G5 选择 \newpage 的原因。</li>
+</ol>
+
+<footer style="margin-top:80px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px">
+  DuText 设计提案 · 你来画，我来排版 · 本文件为独立交互文档，可直接用浏览器打开；动画在 9 秒内循环，最终帧即目标效果。
+</footer>
+
+</main>
+
+<style>
+/* ===== 场景关键帧（统一 9s 循环） ===== */
+@keyframes s0a { 0% { stroke-dashoffset: 1; } 12%, 100% { stroke-dashoffset: 0; } }
+@keyframes s0b { 0%, 18% { stroke-dashoffset: 1; } 30%, 100% { stroke-dashoffset: 0; } }
+@keyframes s0c { 0%, 12% { opacity: 0; transform: scale(.6); } 18%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes s0d { 0%, 32% { opacity: 0; transform: scale(.6); } 38%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes s0e { 0%, 58% { opacity: 0; transform: translateY(6px); } 66%, 82% { opacity: 1; transform: translateY(0); } 92%, 100% { opacity: 0; } }
+@keyframes s0f { 0%, 70% { opacity: 0; } 80%, 88% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes g1a { 0% { stroke-dashoffset: 1; } 20%, 100% { stroke-dashoffset: 0; } }
+@keyframes g1b { 0%, 22% { opacity: 0; } 28%, 100% { opacity: 1; } }
+@keyframes g1c { 0%, 28% { opacity: 0; transform: scale(.6); } 34%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g1d { 0%, 48% { opacity: 0; } 58%, 88% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes g2a { 0%, 100% { opacity: 1; } }
+@keyframes g2b { 0%, 40% { opacity: 1; transform: translateY(0); } 62%, 100% { opacity: 1; transform: translateY(38px); } }
+@keyframes g2c { 0%, 40% { opacity: .9; transform: translateY(0); } 62%, 100% { opacity: .9; transform: translateY(-28px); } }
+@keyframes g2d { 0% { stroke-dashoffset: 1; } 14%, 100% { stroke-dashoffset: 0; } }
+@keyframes g2e { 0%, 16% { stroke-dashoffset: 1; } 26%, 100% { stroke-dashoffset: 0; } }
+@keyframes g2f { 0%, 24% { opacity: 0; } 30%, 100% { opacity: 1; } }
+@keyframes g2g { 0%, 26% { opacity: 0; transform: scale(.6); } 32%, 100% { opacity: 1; transform: scale(1); } }
+
+@keyframes g3a { 0% { stroke-dashoffset: 1; } 14%, 100% { stroke-dashoffset: 0; } }
+@keyframes g3b { 0%, 16% { stroke-dashoffset: 1; } 30%, 100% { stroke-dashoffset: 0; } }
+@keyframes g3c { 0%, 28% { opacity: 0; } 34%, 100% { opacity: 1; } }
+@keyframes g3d { 0%, 32% { opacity: 0; transform: scale(.6); } 38%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g3t1 { 0%, 40% { filter: none; } 48%, 100% { } }
+@keyframes g3hl { 0%, 44% { opacity: 0; } 54%, 88% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes g4a { 0% { stroke-dashoffset: 1; } 14%, 100% { stroke-dashoffset: 0; } }
+@keyframes g4b { 0%, 16% { stroke-dashoffset: 1; } 26%, 100% { stroke-dashoffset: 0; } }
+@keyframes g4c { 0%, 24% { stroke-dashoffset: 1; } 34%, 100% { stroke-dashoffset: 0; } }
+@keyframes g4d { 0%, 34% { opacity: 0; } 40%, 100% { opacity: 1; } }
+@keyframes g4e { 0%, 40% { opacity: 0; } 46%, 100% { opacity: 1; } }
+@keyframes g4fig { 0%, 46% { transform: translate(0,0) scale(1); } 66%, 94% { transform: translate(103px,-4px) scale(1.32); } 100% { transform: translate(0,0) scale(1); } }
+
+@keyframes g5a { 0% { stroke-dashoffset: 1; } 16%, 100% { stroke-dashoffset: 0; } }
+@keyframes g5b { 0%, 18% { opacity: 0; transform: scale(.6); } 24%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g5p1 { 0%, 30% { height: 142px; } 48%, 94% { height: 64px; } 100% { height: 142px; } }
+@keyframes g5p2 { 0%, 30% { opacity: 0; } 48%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes g5t1 { 0%, 100% { opacity: 1; } }
+@keyframes g5t2 { 0%, 30% { opacity: 1; } 48%, 94% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes g5t3 { 0%, 30% { opacity: 1; transform: translateY(0); } 48%, 94% { opacity: 0; transform: translate(162px,-30px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes g5t4 { 0%, 30% { opacity: 1; transform: translateY(0); } 48%, 94% { opacity: 0; transform: translate(162px,-12px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes g5c { 0%, 52% { opacity: 0; } 58%, 90% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes g6a { 0% { stroke-dashoffset: 1; } 18%, 100% { stroke-dashoffset: 0; } }
+@keyframes g6b { 0%, 20% { opacity: 0; transform: scale(.5); } 27%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g6c { 0%, 38% { opacity: 0; transform: translateY(-8px); } 48%, 88% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; } }
+@keyframes g6d { 0%, 28% { opacity: 0; transform: scale(.6); } 34%, 100% { opacity: 1; transform: scale(1); } }
+
+@keyframes g7a { 0%, 34% { opacity: 1; } 48%, 88% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes g7b { 0%, 34% { opacity: 1; } 48%, 88% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes g7c { 0%, 100% { opacity: 1; } }
+@keyframes g7d { 0%, 4% { opacity: 0; transform: scale(.5); } 12%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g7e { 0%, 10% { opacity: 0; } 20%, 100% { opacity: 1; } }
+@keyframes g7f { 0%, 22% { opacity: 0; transform: scale(.6); } 28%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes g7g { 0%, 40% { opacity: 0; } 50%, 86% { opacity: 1; } 100% { opacity: 0; } }
+
+@keyframes g8b { 0% { stroke-dashoffset: 1; } 16%, 100% { stroke-dashoffset: 0; } }
+@keyframes g8c { 0%, 16% { opacity: 0; } 22%, 30% { opacity: 1; } 38%, 100% { opacity: 0; } }
+@keyframes g8d { 0%, 36% { opacity: 0; } 46%, 100% { opacity: 1; } }
+@keyframes g8a { 0%, 44% { opacity: 1; } 56%, 88% { opacity: .3; } 100% { opacity: 1; } }
+@keyframes g8e { 0%, 100% { opacity: 1; } }
+
+@keyframes g9a { 0%, 26% { transform: translateY(0); } 48%, 84% { transform: translateY(-38px); } 100% { transform: translateY(0); } }
+@keyframes g9b { 0%, 26% { transform: translateY(0); } 48%, 84% { transform: translateY(-38px); } 100% { transform: translateY(0); } }
+@keyframes g9c { 0%, 26% { transform: translateY(0); } 48%, 84% { transform: translateY(0px); } 100% { transform: translateY(0); } }
+@keyframes g9d { 0%, 12% { opacity: 0; transform: scaleX(.3); } 18%, 30% { opacity: 1; transform: scaleX(1); } 40%, 100% { opacity: 0; } }
+@keyframes g9e { 0%, 8% { opacity: 0; } 14%, 84% { opacity: 1; } 92%, 100% { opacity: 0; } }
+
+@keyframes ga { 0% { stroke-dashoffset: 1; } 16%, 100% { stroke-dashoffset: 0; } }
+@keyframes gb { 0%, 18% { opacity: 0; transform: scale(.4); } 26%, 100% { opacity: 1; transform: scale(1); } }
+@keyframes gc { 0%, 28% { opacity: 0; transform: scale(.8); } 36%, 88% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+</style>
+
+</body>
+</html>
