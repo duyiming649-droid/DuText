@@ -878,7 +878,23 @@ document.addEventListener("click", (event) => {
   if (!menuPop.hidden && !menuWrap.contains(event.target)) closeMenu();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeMenu();
+  if (event.key === "Escape") {
+    closeMenu();
+    helpOverlay.hidden = true;
+  }
+});
+
+/* ？功能说明 */
+const helpOverlay = document.getElementById("help-overlay");
+document.getElementById("btn-help").addEventListener("click", () => {
+  closeMenu();
+  helpOverlay.hidden = false;
+});
+document.getElementById("btn-help-close").addEventListener("click", () => {
+  helpOverlay.hidden = true;
+});
+helpOverlay.addEventListener("click", (event) => {
+  if (event.target === helpOverlay) helpOverlay.hidden = true;
 });
 els.fab.addEventListener("click", () => {
   state.promptsOpen = !state.promptsOpen;

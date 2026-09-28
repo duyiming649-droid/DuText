@@ -34,8 +34,7 @@
       <div class="actions">
         <button type="button" id="btn-compose" class="tbtn quiet" title="单页自由排版">画版</button>
         <div class="menu-wrap">
-          <button type="button" id="btn-menu" class="tbtn quiet" aria-haspopup="true" aria-expanded="false" title="更多">⋯</button>
-          <div id="menu-popover" class="popover" hidden>
+          <button type="button" id="btn-menu" class="tbtn quiet" aria-haspopup="true" aria-expanded="false" title="更多">⋯</button>          <div id="menu-popover" class="popover" hidden>
             <div class="pop-section">
               <p class="pop-title">文档</p>
               <button type="button" id="btn-sample" class="pop-item">载入示例文档</button>
@@ -63,6 +62,7 @@
             </div>
           </div>
         </div>
+        <button type="button" id="btn-help" class="tbtn quiet" title="功能说明">？</button>
         <button type="button" id="btn-finish" class="tbtn primary btn-finish">完成</button>
         <button type="button" id="btn-generate" class="tbtn primary btn-generate">排一版</button>
       </div>
@@ -146,6 +146,132 @@
         </div>
       </aside>
     </main>
+
+    <div id="help-overlay" class="help-overlay" hidden>
+      <div class="help-sheet" role="dialog" aria-modal="true" aria-label="功能说明">
+        <header class="help-head">
+          <div>
+            <h2>功能说明</h2>
+            <p>你来画，我来排版 —— 每种笔迹就是一条指令。</p>
+          </div>
+          <button type="button" id="btn-help-close" class="tbtn quiet">关闭</button>
+        </header>
+
+        <div class="help-flow">
+          <span>画笔迹</span><i>→</i><span>排一版</span><i>→</i><span>收下 / 打回</span>
+          <em>「画版」是单页自由排版；彩色指令一次最多三条（红 → 黄 → 蓝），黑笔不限。</em>
+        </div>
+
+        <section class="help-row">
+          <div class="help-demo">
+            <svg viewBox="0 0 260 150" aria-hidden="true">
+              <text class="h-dim" x="22" y="48">Layout is hard to describe</text>
+              <text class="h-line" x="22" y="70">in words. Drawing is faster.</text>
+              <text class="h-dim" x="22" y="92">Sketch it instead.</text>
+              <g class="d-fade">
+                <text class="h-line d1-bold" x="22" y="70" style="font-weight: 700">in words. Drawing is faster.</text>
+                <ellipse class="ink-r d1-ring" cx="112" cy="65" rx="102" ry="17" pathLength="1" />
+                <text class="d1-bang" x="230" y="71" style="font-size: 17px; font-weight: 700" fill="#dc2626">!</text>
+              </g>
+            </svg>
+          </div>
+          <div class="help-text">
+            <h3>圈选加粗 <span class="mode">当前稿</span></h3>
+            <p>用「圈选」画一个椭圆圈住一句话，再在旁边画一个<b>感叹号</b>——那句话就会加粗。系统会优先精确识别这个标准画法，不用等模型。</p>
+          </div>
+        </section>
+
+        <section class="help-row">
+          <div class="help-demo">
+            <svg viewBox="0 0 260 150" aria-hidden="true">
+              <text class="h-line" x="30" y="42">第一条指令</text>
+              <text class="h-line" x="30" y="80">第二条指令</text>
+              <text class="h-line" x="30" y="118">第三条指令</text>
+              <g class="d-fade">
+                <ellipse class="ink-r d2-e1" cx="76" cy="37" rx="58" ry="15" pathLength="1" />
+                <ellipse class="ink-y d2-e2" cx="76" cy="75" rx="58" ry="15" pathLength="1" />
+                <ellipse class="ink-b d2-e3" cx="76" cy="113" rx="58" ry="15" pathLength="1" />
+                <g class="d2-chip">
+                  <rect x="0" y="0" width="46" height="20" rx="10" fill="#1c1c1e" />
+                  <text x="23" y="14" text-anchor="middle" fill="#f5f5f7" style="font-size: 10px">右键</text>
+                </g>
+                <g class="d2-b1"><circle cx="14" cy="37" r="8" fill="#dc2626" /><text x="14" y="41" text-anchor="middle" fill="#fff" style="font-size: 10px; font-weight: 700">1</text></g>
+                <g class="d2-b2"><circle cx="14" cy="75" r="8" fill="#ca8a04" /><text x="14" y="79" text-anchor="middle" fill="#fff" style="font-size: 10px; font-weight: 700">2</text></g>
+                <g class="d2-b3"><circle cx="14" cy="113" r="8" fill="#2563eb" /><text x="14" y="117" text-anchor="middle" fill="#fff" style="font-size: 10px; font-weight: 700">3</text></g>
+              </g>
+            </svg>
+          </div>
+          <div class="help-text">
+            <h3>确认一条指令 <span class="mode">当前稿</span></h3>
+            <p>画完一条后<b>右键</b>或 <b>Ctrl+滚轮</b>确认，自动换下一种颜色；普通滚轮用来滚动页面。确认过的笔迹就是一条完整指令，最多三条。</p>
+          </div>
+        </section>
+
+        <section class="help-row">
+          <div class="help-demo">
+            <svg viewBox="0 0 300 150" aria-hidden="true">
+              <rect x="8" y="12" width="126" height="126" rx="6" fill="#ffffff" stroke="#d6d6d8" />
+              <rect x="166" y="12" width="126" height="126" rx="6" fill="#ffffff" stroke="#d6d6d8" />
+              <g class="d-fade">
+                <g class="d3-txt">
+                  <text class="h-dim" x="20" y="64">Move this paragraph</text>
+                  <text class="h-dim" x="20" y="78">into the box</text>
+                  <text class="h-dim" x="20" y="92">on the right.</text>
+                </g>
+                <rect class="ink-r d3-src" x="14" y="50" width="112" height="52" rx="4" pathLength="1" />
+                <path class="ink-r d3-arrow" d="M144 76 C 154 76 158 70 166 70" pathLength="1" />
+                <path class="ink-r d3-head" d="M166 70 l-6 -3.5 M166 70 l-6 3.5" />
+                <rect class="ink-r d3-dest" x="180" y="44" width="100" height="56" rx="4" pathLength="1" />
+              </g>
+            </svg>
+          </div>
+          <div class="help-text">
+            <h3>画版 · 挪文字 <span class="mode">画版</span></h3>
+            <p>顶栏「画版」进入单页排版：用<b>矩形</b>圈住左边要挪的段落，<b>箭头</b>拉到右边，再画一个<b>同色目标框</b>——AI 会把文字排进框里，放不下就自动调字号行距，放得下就保持原字号。</p>
+          </div>
+        </section>
+
+        <section class="help-row">
+          <div class="help-demo">
+            <svg viewBox="0 0 260 110" aria-hidden="true">
+              <g class="d-fade">
+                <path class="ink-k d4-wob" d="M24 72 C 56 62 92 82 128 70 S 204 80 236 66" pathLength="1" />
+                <path class="ink-k d4-straight" d="M24 70 L236 70" />
+              </g>
+            </svg>
+          </div>
+          <div class="help-text">
+            <h3>黑笔 · 版面模板 <span class="mode">画版</span></h3>
+            <p>黑笔画什么算什么：实线、框、表格线都按你画的位置来。画不直的帮你<b>拉直</b>，间距不匀的帮你调匀，不会被合并成一整块装饰。黑笔可选，不画就不加。</p>
+          </div>
+        </section>
+
+        <section class="help-row">
+          <div class="help-demo">
+            <svg viewBox="0 0 260 140" aria-hidden="true">
+              <rect x="16" y="16" width="96" height="108" rx="6" fill="#ffffff" stroke="#d6d6d8" />
+              <text class="h-dim" x="26" y="44" style="font-size: 9px">当前稿</text>
+              <text class="h-dim" x="26" y="60" style="font-size: 9px">···· ····</text>
+              <g class="d-fade">
+                <g class="d5-right">
+                  <rect x="148" y="16" width="96" height="108" rx="6" fill="#ffffff" stroke="#d6d6d8" />
+                  <text class="h-dim" x="158" y="44" style="font-size: 9px">提案</text>
+                  <text class="h-dim" x="158" y="60" style="font-size: 9px">···· ···· ···</text>
+                </g>
+                <rect class="d5-blue" x="16" y="16" width="96" height="108" rx="6" fill="none" stroke="#0a84ff" stroke-width="2" />
+                <rect class="d5-red" x="148" y="16" width="96" height="108" rx="6" fill="none" stroke="#ff453a" stroke-width="2" />
+                <text class="d5-ok" x="130" y="76" text-anchor="middle" fill="#0a84ff" style="font-size: 13px; font-weight: 700">收下</text>
+                <text class="d5-no" x="130" y="76" text-anchor="middle" fill="#ff453a" style="font-size: 13px; font-weight: 700">打回</text>
+              </g>
+            </svg>
+          </div>
+          <div class="help-text">
+            <h3>收下与打回 <span class="mode">通用</span></h3>
+            <p>「排一版」之后右边是提案：满意点<b>收下</b>，它成为新的当前稿（收下前自动留备份）；不满意点<b>打回</b>，笔迹保留，改完再排一次。</p>
+          </div>
+        </section>
+      </div>
+    </div>
 
     <button type="button" id="ai-fab" class="ai-fab" title="打开指令备注">AI</button>
 
