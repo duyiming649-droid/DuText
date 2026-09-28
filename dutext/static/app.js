@@ -24,7 +24,6 @@ const state = {
   wheelLock: false,
   ui: "layout",
   fromCompose: false,
-  sidebarCollapsed: false,
   promptsOpen: false,
   highlightGroup: null,
   left: { pdf: null, page: null, viewport: null },
@@ -56,7 +55,6 @@ const els = {
   rightTitle: document.getElementById("right-title"),
   rightHint: document.getElementById("right-hint"),
   btnCompose: document.getElementById("btn-compose"),
-  btnSidebar: document.getElementById("btn-sidebar"),
   fab: document.getElementById("ai-fab"),
 };
 
@@ -178,7 +176,6 @@ function syncBodyClass() {
   document.body.classList.toggle("is-drawing", state.ui === "compose");
   document.body.classList.toggle("is-ready", state.ui === "ready");
   document.body.classList.toggle("showing-result", state.ui === "result");
-  document.body.classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
   document.body.classList.toggle("prompts-open", state.promptsOpen);
 }
 
@@ -195,7 +192,6 @@ function updateChrome() {
   els.undo.disabled = state.cursor <= 0;
   els.redo.disabled = state.cursor >= state.history.length;
   els.btnCompose.classList.toggle("is-on", isComposeView());
-  els.btnSidebar.textContent = state.sidebarCollapsed ? "›" : "‹";
 
   if (state.tool === "black") {
     els.inkDot.style.background = BLACK.stroke;
@@ -332,7 +328,7 @@ async function renderPane(side) {
     const ctx = cssSize(canvas, slot.viewport.width, slot.viewport.height);
     sheet.style.width = `${slot.viewport.width}px`;
     sheet.style.height = `${slot.viewport.height}px`;
-    ctx.fillStyle = "#fbfaf7";
+    ctx.fillStyle = "#fcfcfa";
     ctx.fillRect(0, 0, slot.viewport.width, slot.viewport.height);
     cssSize(overlay, slot.viewport.width, slot.viewport.height);
     return;
@@ -635,7 +631,7 @@ function snapshotSheet(side) {
   out.width = pdf.width;
   out.height = pdf.height;
   const ctx = out.getContext("2d");
-  ctx.fillStyle = "#fbfaf7";
+  ctx.fillStyle = "#fcfcfa";
   ctx.fillRect(0, 0, out.width, out.height);
   ctx.drawImage(pdf, 0, 0);
   ctx.drawImage(overlay, 0, 0);
@@ -663,7 +659,7 @@ function paintBlankWithStrokes(side) {
   const ctx = out.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#fbfaf7";
+  ctx.fillStyle = "#fcfcfa";
   ctx.fillRect(0, 0, template.clientWidth, template.clientHeight);
   if (!slot.viewport || !slot.page) return out;
   for (const stroke of currentStrokes()) {
@@ -856,15 +852,33 @@ document.getElementById("btn-clear").addEventListener("click", () => {
 });
 
 document.getElementById("btn-generate").addEventListener("click", generate);
-document.getElementById("btn-generate-side").addEventListener("click", generate);
 document.getElementById("btn-finish").addEventListener("click", finishCompose);
-document.getElementById("btn-finish-side").addEventListener("click", finishCompose);
-document.getElementById("btn-download").addEventListener("click", downloadLeft);
-document.getElementById("btn-download-side").addEventListener("click", downloadLeft);
+document.getElementById("btn-download").addEventListener("click", () => {
+  closeMenu();
+  downloadLeft();
+});
 els.btnCompose.addEventListener("click", enterCompose);
-els.btnSidebar.addEventListener("click", () => {
-  state.sidebarCollapsed = !state.sidebarCollapsed;
-  relayout();
+
+/* ⋯ 菜单：文档操作 + 密钥 + 手势说明 */
+const menuWrap = document.querySelector(".menu-wrap");
+const menuBtn = document.getElementById("btn-menu");
+const menuPop = document.getElementById("menu-popover");
+
+function closeMenu() {
+  menuPop.hidden = true;
+  menuBtn.setAttribute("aria-expanded", "false");
+}
+
+menuBtn.addEventListener("click", (event) => {
+  event.stopPropagation();
+  menuPop.hidden = !menuPop.hidden;
+  menuBtn.setAttribute("aria-expanded", String(!menuPop.hidden));
+});
+document.addEventListener("click", (event) => {
+  if (!menuPop.hidden && !menuWrap.contains(event.target)) closeMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeMenu();
 });
 els.fab.addEventListener("click", () => {
   state.promptsOpen = !state.promptsOpen;
@@ -930,6 +944,7 @@ document.getElementById("btn-reject").addEventListener("click", async () => {
 });
 
 document.getElementById("btn-sample").addEventListener("click", async () => {
+  closeMenu();
   try {
     await api("/api/sample", { method: "POST" });
     state.fromCompose = false;
@@ -964,6 +979,7 @@ els.file.addEventListener("change", async () => {
   } catch (err) {
     setStatus(err.message, "is-bad");
   } finally {
+    closeMenu();
     els.file.value = "";
   }
 });
@@ -1009,6 +1025,6 @@ setStatus("正在打开文档…", "is-busy");
 loadPdfs()
   .then(() => {
     updateChrome();
-    setStatus("红色开始画第一条。画完后右键或 Ctrl+滚轮确认，换黄、再换蓝。侧栏「画版」可进入自由排版。");
+    setStatus("红色开始画第一条。画完后右键或 Ctrl+滚轮确认，换黄、再换蓝。顶栏「画版」可进入自由排版。");
   })
   .catch((err) => setStatus(err.message, "is-bad"));
